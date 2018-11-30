@@ -98,7 +98,7 @@ contract HpbPay{
     mapping (address => uint) public merchantsIndexMap;//商户账户地址=》商户数组下标
     mapping (address => uint) public payersIndexMap;//付款者账户地址=》付款者数组下标
     
-    constructor() public {
+    constructor()payable public {
         owner = msg.sender;
         adminMap[owner]=owner;// 设置默认普通管理员（合约创建者）
         merchants.push(Merchant(msg.sender,"","",new uint[](0)));//设置第一个位置（为了定位不出错，第一个位置不占用）
@@ -610,7 +610,7 @@ contract HpbPay{
      */
     function payOrder(
         string _orderId
-    )public{
+    )payable public{
         uint payerIndex = payersIndexMap[msg.sender];
         uint orderIndexFromPayer=payers[payerIndex].indexMap[_orderId];
         require(orderIndexFromPayer!= 0);//必须是已存在订单关联的支付账户
@@ -618,7 +618,11 @@ contract HpbPay{
         require(msg.sender==orders[orderIndex].from);
         require(PayStatus.Created==orders[orderIndex].status);//必须是已创建状态
         uint v=orders[orderIndex].value;
+        require(msg.value>=v,"发送的金额不足，请检查");
         orders[orderIndex].to.transfer(v);
+        if (msg.value > v){
+            msg.sender.send(msg.value - v);//退返多余的金额
+        }
         orders[orderIndex].status=PayStatus.Paid;
         emit PayOrder(
 	        orders[orderIndex].from,
