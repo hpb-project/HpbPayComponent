@@ -110,7 +110,7 @@ contract HpbPay{
      * 如果非合约拥有者就抛出异常
      */
     modifier onlyOwner() {
-        require(msg.sender == owner);
+        require(msg.sender == owner,"必须是合约拥有者才能调用该方法");
         _;
     }
 
@@ -129,13 +129,13 @@ contract HpbPay{
     function transferOwnership(
         address _newOwner
     ) public onlyOwner {
-        require(_newOwner != address(0));
+        require(_newOwner != address(0),"新拥有者账户地址与当前拥有者账户地址相同");
         emit OwnershipTransferred(owner, _newOwner);
         owner = _newOwner;
     }
     
     modifier onlyAdmin{
-        require(adminMap[msg.sender] != 0);
+        require(adminMap[msg.sender] != 0,"必须是合约管理员才能调用该方法");
         _;
     }
     /**
@@ -143,7 +143,7 @@ contract HpbPay{
      * @param addr 管理员账户地址
      */
     function addAdmin(address addr) onlyOwner public{
-        require(adminMap[addr]== 0);
+        require(adminMap[addr]== 0,"该管理员已经存在");
         adminMap[addr] = addr;
     }
     /**
@@ -151,7 +151,7 @@ contract HpbPay{
      * @param addr 管理员账户地址
      */
     function deleteAdmin(address addr) onlyOwner public{
-        require(adminMap[addr] != 0);
+        require(adminMap[addr] != 0,"该管理员不存在");
         adminMap[addr]=0;
     }
     /**
@@ -166,7 +166,7 @@ contract HpbPay{
         string _desc
     ) onlyAdmin public{
         uint merchantIndex = merchantsIndexMap[_merchantAddr];
-        require(merchantIndex == 0);//必须商户地址还未添加
+        require(merchantIndex == 0,"该商户地址已经存在");//必须商户地址还未添加
         merchantIndex =merchants.length;
         merchantsIndexMap[_merchantAddr]=merchantIndex;
         merchants.push(Merchant(_merchantAddr,_publicKey,_desc,new uint[](0)));
@@ -183,7 +183,7 @@ contract HpbPay{
         string _desc
     )  public{
         uint merchantIndex = merchantsIndexMap[msg.sender];
-        require(merchantIndex!= 0);//必须商户地址存在
+        require(merchantIndex!= 0,"该商户地址不存在");//必须商户地址存在
         merchants[merchantIndex].publicKey=_publicKey;
         merchants[merchantIndex].desc=_desc;
     }
@@ -196,7 +196,7 @@ contract HpbPay{
         string _publicKey
     ){
         uint merchantIndex = merchantsIndexMap[msg.sender];
-        require(merchantIndex!= 0);//必须商户地址存在
+        require(merchantIndex!= 0,"该商户地址不存在");//必须商户地址存在
         return merchants[merchantIndex].publicKey;
     }
     /**
@@ -209,7 +209,7 @@ contract HpbPay{
         string _publicKey
     ){
         uint merchantIndex = merchantsIndexMap[_merchantAddr];
-        require(merchantIndex!= 0);//必须商户地址存在
+        require(merchantIndex!= 0,"该商户地址不存在");//必须商户地址存在
         return merchants[merchantIndex].publicKey;
     }
     /**
@@ -224,7 +224,7 @@ contract HpbPay{
         string _desc
     )onlyAdmin public{
         uint merchantIndex = merchantsIndexMap[_merchantAddr];
-        require(merchantIndex!= 0);//必须商户地址存在
+        require(merchantIndex!= 0,"该商户地址不存在");//必须商户地址存在
         merchants[merchantIndex].publicKey=_publicKey;
         merchants[merchantIndex].desc=_desc;
     }
@@ -248,7 +248,7 @@ contract HpbPay{
         string _desc
     ) internal{
         uint merchantIndex = merchantsIndexMap[_merchantAddr];
-        require(merchantIndex!= 0);//必须商户地址存在(合法的商户才可以生成订单)
+        require(merchantIndex!= 0,"该商户地址不存在");//必须商户地址存在(合法的商户才可以生成订单)
         require(merchants[merchantIndex].indexMap[_orderId]==0);//订单Id不能重复
         uint orderIndexFromMerchant=merchants[merchantIndex].orderIndexs.length;
         merchants[merchantIndex].indexMap[_orderId]=orderIndexFromMerchant;
@@ -260,7 +260,7 @@ contract HpbPay{
             payersIndexMap[_from]=payerIndex;
             payers[payerIndex].orderIndexs.push(0);//设置第一个位置（为了定位不出错，第一个位置不占用）
         }
-        require(payers[payerIndex].indexMap[_orderId]==0);//订单Id不能重复
+        require(payers[payerIndex].indexMap[_orderId]==0,"该订单Id已经存在");//订单Id不能重复
         uint orderIndexFromPayer=payers[payerIndex].orderIndexs.length;
         payers[payerIndex].indexMap[_orderId]=orderIndexFromPayer;
         payers[payerIndex].orderIndexs.push(orders.length);
@@ -284,13 +284,13 @@ contract HpbPay{
         address _payerAddr
     ) internal{
         uint payerIndex = payersIndexMap[_payerAddr];
-        require(payerIndex!= 0);//必须是已存在订单关联的支付账户
+        require(payerIndex!= 0,"该订单关联的支付账户不存在");//必须是已存在订单关联的支付账户
         uint orderIndexFromPayer=payers[payerIndex].indexMap[_orderId];
-        require(orderIndexFromPayer!= 0);//订单必须存在
+        require(orderIndexFromPayer!= 0,"该订单不存在");//订单必须存在
         uint orderIndex=payers[payerIndex].orderIndexs[orderIndexFromPayer];
-        require(orderIndex!=0);
-        require(msg.sender==orders[orderIndex].from);//支付者必须是本人
-        require(PayStatus.Created==orders[orderIndex].status);//必须是已创建状态
+        require(orderIndex!=0,"该订单不存在");
+        require(msg.sender==orders[orderIndex].from,"该订单关联的支付账户与当前账户不一致");//支付者必须是本人
+        require(PayStatus.Created==orders[orderIndex].status,"该订单已支付或已取消");//必须是已创建状态
         orders[orderIndex].status=PayStatus.Cancelled;
         emit CancelOrder(
 	        orders[orderIndex].from,
@@ -319,11 +319,11 @@ contract HpbPay{
         string _desc
     ){
         uint payerIndex = payersIndexMap[payerAddr];
-        require(payerIndex!= 0);//必须是已存在订单关联的支付账户
+        require(payerIndex!= 0,"该订单关联的支付账户不存在");//必须是已存在订单关联的支付账户
         uint orderIndexFromPayer=payers[payerIndex].indexMap[orderId];
-        require(orderIndexFromPayer!= 0);//订单必须存在
+        require(orderIndexFromPayer!= 0,"该订单不存在");//订单必须存在
         uint orderIndex=payers[payerIndex].orderIndexs[orderIndexFromPayer];
-        require(orderIndex!=0);
+        require(orderIndex!=0,"该订单不存在");
         return fetchOrderByOrderIndex(orderIndex);
     }
     /**
@@ -336,12 +336,12 @@ contract HpbPay{
         address _merchantAddr
     ) internal{
         uint merchantIndex = merchantsIndexMap[_merchantAddr];
-        require(merchantIndex!= 0);//必须是已存在订单关联的商户账户
+        require(merchantIndex!= 0,"该订单关联的商户账户不存在");//必须是已存在订单关联的商户账户
         uint orderIndexFromMerchant=merchants[merchantIndex].indexMap[_orderId];
-        require(orderIndexFromMerchant!= 0);//订单必须存在
+        require(orderIndexFromMerchant!= 0,"该订单不存在");//订单必须存在
         uint orderIndex=merchants[merchantIndex].orderIndexs[orderIndexFromMerchant];
-        require(orderIndex!=0);//必须是商户本人的订单
-        require(PayStatus.Created==orders[orderIndex].status);//必须是已创建状态
+        require(orderIndex!=0,"该订单不存在");//必须是商户本人的订单
+        require(PayStatus.Created==orders[orderIndex].status,"该订单已支付或已取消");//必须是已创建状态
         orders[orderIndex].status=PayStatus.Cancelled;
         emit CancelOrder(
 	        orders[orderIndex].from,
@@ -370,11 +370,11 @@ contract HpbPay{
         string _desc
     ){
         uint merchantIndex = merchantsIndexMap[merchantAddr];
-        require(merchantIndex!= 0);//必须是已存在订单关联的商户账户
+        require(merchantIndex!= 0,"该订单关联的商户账户不存在");//必须是已存在订单关联的商户账户
         uint orderIndexFromMerchant=merchants[merchantIndex].indexMap[orderId];
-        require(orderIndexFromMerchant!= 0);//订单必须存在
+        require(orderIndexFromMerchant!= 0,"该商户订单不存在");//订单必须存在
         uint orderIndex=merchants[merchantIndex].orderIndexs[orderIndexFromMerchant];
-        require(orderIndex!=0);//必须是商户本人的订单
+        require(orderIndex!=0,"该商户订单不存在");//必须是商户本人的订单
         return fetchOrderByOrderIndex(orderIndex);
     }
     /**
@@ -621,7 +621,7 @@ contract HpbPay{
         require(msg.value>=v,"发送的金额不足，请检查");
         orders[orderIndex].to.transfer(v);
         if (msg.value > v){
-            msg.sender.send(msg.value - v);//退返多余的金额
+            msg.sender.transfer(msg.value - v);//退返多余的金额
         }
         orders[orderIndex].status=PayStatus.Paid;
         emit PayOrder(
